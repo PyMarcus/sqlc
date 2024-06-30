@@ -4,7 +4,7 @@ createdb:
 	docker exec -it my_postgres createdb --username=myuser --owner=myuser db
 dropdb:
 	docker exec -it my_postgres dropdb db --username=myuser 
-.PHONY: postgres createdb dropdb
+.PHONY: postgres createdb dropdb test run 
 
 migrateup:
 	migrate -path db/migration -database "postgresql://myuser:secret@localhost:5432/db?sslmode=disable" -verbose up
