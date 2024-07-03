@@ -2,26 +2,28 @@ package main
 
 import (
 	"database/sql"
+
 	_ "github.com/lib/pq"
 
 	"log"
 
 	"github.com/PyMarcus/go_sqlc/api"
 	db "github.com/PyMarcus/go_sqlc/db/sqlc"
-)
-
-const (
-	dbDriver = "postgres"
-	dbStr    = "postgresql://myuser:secret@localhost:5432/db?sslmode=disable"
+	"github.com/PyMarcus/go_sqlc/util"
 )
 
 func main() {
-	conn, err := sql.Open(dbDriver, dbStr)
+	config, err := util.LoadConfig(".")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	conn, err := sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
 		log.Fatal("Cannot connect to database", err)
 	}
 	server := api.NewServer(db.NewStore(conn))
-	addr := ":8080"
+	addr := config.ServerAddr
 	log.Println("Running...", addr)
 	server.Start(addr)
 }
