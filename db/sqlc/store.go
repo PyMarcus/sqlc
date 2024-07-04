@@ -7,16 +7,21 @@ import (
 	"strconv"
 )
 
-type Store struct {
+type Store interface {
+	Querier
+	TransferTx(context.Context, TransferTxParams) (TransferTxResult, error)
+}
+
+type SQLStore struct {
 	*Queries
 	db *sql.DB
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{Queries: New(db), db: db}
+func NewStore(db *sql.DB) Store {
+	return &SQLStore{Queries: New(db), db: db}
 }
 
-func (s *Store) ExecTx(ctx context.Context, fn func(*Queries) error) error {
+func (s *SQLStore) ExecTx(ctx context.Context, fn func(*Queries) error) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -48,7 +53,7 @@ type TransferTxResult struct {
 	ToEntry     Entry    `json:"to_entry"`
 }
 
-func (s *Store) TransferTx(ctx context.Context, args TransferTxParams) (TransferTxResult, error) {
+func (s *SQLStore) TransferTx(ctx context.Context, args TransferTxParams) (TransferTxResult, error) {
 	var result TransferTxResult
 
 	err := s.ExecTx(ctx, func(q *Queries) error {

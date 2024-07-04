@@ -2,24 +2,25 @@ package db
 
 import (
 	"database/sql"
-	_ "github.com/lib/pq"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/PyMarcus/go_sqlc/util"
+	_ "github.com/lib/pq"
 )
 
 var testQueries *Queries
 var testDb *sql.DB
 
-const (
-	dbDriver = "postgres"
-	dbStr    = "postgresql://myuser:secret@localhost:5432/db?sslmode=disable"
-)
-
 func TestMain(m *testing.M) {
-	var err error 
-	
-	testDb, err = sql.Open(dbDriver, dbStr)
+	var err error
+	config, err := util.LoadConfig("../..")
+	if err != nil {
+		log.Fatal("Cannot init load env")
+		return
+	}
+	testDb, err = sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
 		log.Fatal("Cannot connect to database", err)
 	}

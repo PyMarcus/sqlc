@@ -15,7 +15,7 @@ import (
 func main() {
 	config, err := util.LoadConfig(".")
 	if err != nil {
-		log.Println(err)
+		log.Println("Cannot load configurations")
 		return
 	}
 	conn, err := sql.Open(config.DBDriver, config.DBSource)
