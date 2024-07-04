@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -14,28 +15,61 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 func TestGetAccountAPI(t *testing.T) {
 	acc := randomAccount()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	testCases := []struct {
+		name          string
+		accID         int64
+		buildStubs    func(store *mock_sqlc.MockStore)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		// case 1
+		{
+			name:  "OK",
+			accID: acc.ID,
+			buildStubs: func(store *mock_sqlc.MockStore) {
+				store.EXPECT().GetAccount(gomock.Any(), gomock.Eq(acc.ID)).Times(1).Return(acc, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
 
-	store := mock_sqlc.NewMockStore(ctrl)
+		// case 2
+		{
+			name:  "Not Found",
+			accID: acc.ID,
+			buildStubs: func(store *mock_sqlc.MockStore) {
+				store.EXPECT().GetAccount(gomock.Any(), gomock.Eq(acc.ID)).Times(1).Return(db.Account{}, sql.ErrNoRows)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNoContent, recorder.Code)
+			},
+		},
+	}
 
-	store.EXPECT().GetAccount(gomock.Any(), gomock.Eq(acc.ID)).Times(1).Return(acc, nil)
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	server := NewServer(store)
+			store := mock_sqlc.NewMockStore(ctrl)
+			tc.buildStubs(store)
+			server := NewServer(store)
 
-	recorder := httptest.NewRecorder()
+			recorder := httptest.NewRecorder()
 
-	url := fmt.Sprintf("/accounts/%d", acc.ID)
-	request, err := http.NewRequest(http.MethodGet, url, nil)
-	require.NoError(t, err)
+			url := fmt.Sprintf("/accounts/%d", acc.ID)
+			request, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+			server.router.ServeHTTP(recorder, request)
+			tc.checkResponse(t, recorder)
 
-	server.router.ServeHTTP(recorder, request)
+		})
 
-	require.Equal(t, http.StatusOK, recorder.Code)
+	}
 }
 
 func randomAccount() db.Account {
