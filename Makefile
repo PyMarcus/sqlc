@@ -4,12 +4,16 @@ createdb:
 	docker exec -it my_postgres createdb --username=myuser --owner=myuser db
 dropdb:
 	docker exec -it my_postgres dropdb db --username=myuser 
-.PHONY: postgres createdb dropdb test run mock
+.PHONY: postgres createdb dropdb test run mock migrateup migratedown migratedown_tolast migrateup_tolast
 
 migrateup:
 	migrate -path db/migration -database "postgresql://myuser:secret@localhost:5432/db?sslmode=disable" -verbose up
 migratedown:
 	migrate -path db/migration -database "postgresql://myuser:secret@localhost:5432/db?sslmode=disable" -verbose down
+migrateup_tolast:
+	migrate -path db/migration -database "postgresql://myuser:secret@localhost:5432/db?sslmode=disable" -verbose up 1
+migratedown_tolast:
+	migrate -path db/migration -database "postgresql://myuser:secret@localhost:5432/db?sslmode=disable" -verbose down 1
 sqlc:
 	sqlc generate
 start:
