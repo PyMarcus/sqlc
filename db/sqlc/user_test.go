@@ -4,15 +4,16 @@ import (
 	"context"
 	"testing"
 
+	"github.com/PyMarcus/go_sqlc/util"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCreateUser(t *testing.T) {
 	param := CreateUserParams{
-		Username:       "user1",
+		Username:       util.RandomOwner(),
 		HashedPassword: "hashed",
-		FullName:       "user1 da silva",
-		Email:          "user@email.com",
+		FullName:       "userp da silva",
+		Email:          util.RandomString(4),
 	}
 	user, err := testQueries.CreateUser(context.Background(), param)
 	require.NoError(t, err)

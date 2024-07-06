@@ -10,8 +10,15 @@ import (
 )
 
 func createAcc(t *testing.T) Account {
+	param := CreateUserParams{
+		Username:       util.RandomOwner(),
+		HashedPassword: "hashed",
+		FullName:       "user8 da silva",
+		Email:          util.RandomString(5),
+	}
+	user, _ := testQueries.CreateUser(context.Background(), param)
 	arg := CreateAccountParams{
-		Owner:    util.RandomOwner(),
+		Owner:    user.Username,
 		Balance:  util.RandomMoney(),
 		Currency: util.RandomCurrency(),
 	}
@@ -56,11 +63,11 @@ func TestUpdateAccount(t *testing.T) {
 	require.WithinDuration(t, acc.CreatedAt, account.CreatedAt, time.Second)
 }
 
-func TestDeleteAccount(t *testing.T){
+func TestDeleteAccount(t *testing.T) {
 	acc := createAcc(t)
 	err := testQueries.DeleteAccount(context.Background(), acc.ID)
 	require.NoError(t, err)
-	
+
 	acc2, err := testQueries.GetAccount(context.Background(), acc.ID)
 	require.Error(t, err)
 	require.Empty(t, acc2)
