@@ -22,7 +22,10 @@ func main() {
 	if err != nil {
 		log.Fatal("Cannot connect to database", err)
 	}
-	server := api.NewServer(db.NewStore(conn))
+	server, err := api.NewServer(config, db.NewStore(conn))
+	if err != nil{
+		return
+	}
 	addr := config.ServerAddr
 	log.Println("Running...", addr)
 	server.Start(addr)
