@@ -18,13 +18,20 @@ type Server struct {
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {
-	router := gin.Default()
 	tokenMaker, err := token.NewPasetoMaker(config.SymmetricKey)
+	router := gin.Default()
+
 	if err != nil {
 		return nil, fmt.Errorf("cannot create token: %w", err)
 	}
 	server := &Server{store, router, tokenMaker, config}
 
+	server.setupRouter(router)
+
+	return server, nil
+}
+
+func (server Server) setupRouter(router *gin.Engine) {
 	router.POST("/accounts", server.createAccount)
 	router.GET("/accounts/:id", server.getAccount)
 	router.GET("/accounts", server.listAccount)
@@ -32,8 +39,6 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 	router.POST("/users", server.createUser)
 	router.POST("/users/login", server.loginUser)
 	router.GET("/users/:user", server.getUser)
-
-	return server, nil
 }
 
 func (s Server) Start(addr string) error {
