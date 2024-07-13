@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/PyMarcus/go_sqlc/util"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -26,8 +27,10 @@ func (j JWTMaker) CreateToken(username string, duration time.Duration) (string, 
 		return "", err
 	}
 
+	c := util.Config{}
+
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
-	return jwtToken.SignedString([]byte(j.secretKey))
+	return jwtToken.SignedString([]byte(c.SymmetricKey))
 }
 
 func (j JWTMaker) VerifyToken(token string) (*Payload, error) {

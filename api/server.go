@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/PyMarcus/go_sqlc/token"
 	"github.com/PyMarcus/go_sqlc/util"
@@ -18,6 +19,8 @@ type Server struct {
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {
+	log.Println(config.SymmetricKey)
+
 	tokenMaker, err := token.NewPasetoMaker(config.SymmetricKey)
 	router := gin.Default()
 

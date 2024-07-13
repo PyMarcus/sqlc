@@ -2,6 +2,7 @@ package token
 
 import (
 	"errors"
+	"log"
 	"time"
 
 	"github.com/aead/chacha20poly1305"
@@ -18,6 +19,7 @@ type PasetoMaker struct {
 }
 
 func NewPasetoMaker(symmetricKey string) (Maker, error) {
+	log.Println(len(symmetricKey))
 	if len(symmetricKey) != chacha20poly1305.KeySize {
 		return nil, errInvalidKeySize
 	}

@@ -1,9 +1,11 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	mock_sqlc "github.com/PyMarcus/go_sqlc/db/mock"
 	"github.com/PyMarcus/go_sqlc/token"
@@ -13,12 +15,64 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func addAuthToken(t *testing.T,
+	req *http.Request,
+	tokenMaker token.Maker,
+	authType string,
+	username string,
+	duration time.Duration,
+) {
+	token, err := tokenMaker.CreateToken(username, duration)
+	require.NoError(t, err)
+	require.NotNil(t, token)
+
+	authHeader := fmt.Sprintf("%s %s", authType, token)
+	req.Header.Set(authorizationHeaderKey, authHeader)
+
+}
+
 func TestAuthMiddleware(t *testing.T) {
 	testCases := []struct {
 		name          string
 		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		checkResponse func(t *testing.T, recorder httptest.ResponseRecorder)
-	}{}
+	}{
+		{
+			name: "OK",
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthToken(t, request, tokenMaker, authorizationTypeBearer, "Marcus12", time.Minute)
+			},
+			checkResponse: func(t *testing.T, recorder httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name: "NoAuthorization",
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			},
+			checkResponse: func(t *testing.T, recorder httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name: "UnsupportedAuthorization",
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthToken(t, request, tokenMaker, "unsupported", "Marcus12", time.Minute)
+			},
+			checkResponse: func(t *testing.T, recorder httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name: "ExpiredToken",
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthToken(t, request, tokenMaker, authorizationTypeBearer, "Marcus12", -time.Minute)
+			},
+			checkResponse: func(t *testing.T, recorder httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+	}
 
 	for i := range testCases {
 		tc := testCases[i]
@@ -27,7 +81,7 @@ func TestAuthMiddleware(t *testing.T) {
 			defer ctrl.Finish()
 
 			store := mock_sqlc.NewMockStore(ctrl)
-			config := util.Config{}
+			config, _ := util.LoadConfig("../")
 			server, err := NewServer(config, store)
 			require.NoError(t, err)
 			authPath := "/auth"
