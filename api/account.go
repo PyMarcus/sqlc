@@ -2,14 +2,16 @@ package api
 
 import (
 	"database/sql"
+	"errors"
+	"log"
 	"net/http"
 
 	db "github.com/PyMarcus/go_sqlc/db/sqlc"
+	"github.com/PyMarcus/go_sqlc/token"
 	"github.com/gin-gonic/gin"
 )
 
 type createAccountRequest struct {
-	Owner    string `json:"owner" binding:"required"`
 	Currency string `json:"currency" binding:"required,oneof=USD BRL"`
 }
 
@@ -28,7 +30,11 @@ func (s Server) createAccount(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
-	args := db.CreateAccountParams{Owner: req.Owner, Currency: req.Currency, Balance: "0"}
+
+	// o usuario so deve criar uma conta para si, nao para outros.
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	args := db.CreateAccountParams{Owner: authPayload.Username, Currency: req.Currency, Balance: "0"}
 	acc, err := s.store.CreateAccount(ctx, args)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
@@ -52,7 +58,13 @@ func (s Server) getAccount(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if account.Owner != authPayload.Username {
+		log.Println("AQ")
+		err := errors.New("the logged user does'nt have this account")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
 	ctx.JSON(http.StatusOK, account)
 }
 

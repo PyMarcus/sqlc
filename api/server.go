@@ -29,16 +29,18 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 	}
 	server := &Server{store, router, tokenMaker, config}
 
-	server.setupRouter(router)
+	server.setupRouter(router, tokenMaker)
 
 	return server, nil
 }
 
-func (server Server) setupRouter(router *gin.Engine) {
-	router.POST("/accounts", server.createAccount)
-	router.GET("/accounts/:id", server.getAccount)
-	router.GET("/accounts", server.listAccount)
-
+func (server Server) setupRouter(router *gin.Engine, tokenMaker token.Maker) {
+	// auth
+	authRoutes := router.Group("/").Use(authMiddleware(tokenMaker))
+	authRoutes.POST("/accounts", server.createAccount)
+	authRoutes.GET("/accounts/:id", server.getAccount)
+	authRoutes.GET("/accounts", server.listAccount)
+	// unprotected
 	router.POST("/users", server.createUser)
 	router.POST("/users/login", server.loginUser)
 	router.GET("/users/:user", server.getUser)
